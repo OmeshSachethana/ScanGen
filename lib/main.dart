@@ -76,7 +76,7 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
               decoration: BoxDecoration(color: Colors.blue.shade600),
               child: const Center(
                 child: Text(
-                  "QR & Barcode App",
+                  "ScanGen",
                   style: TextStyle(color: Colors.white, fontSize: 22),
                 ),
               ),

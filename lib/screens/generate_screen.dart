@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/rendering.dart';
 import 'package:scan_gen/screens/database/history_database.dart';
 import 'package:scan_gen/screens/models/history_model.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,6 +24,8 @@ class _GenerateScreenState extends State<GenerateScreen> {
   late InterstitialAdHelper _adHelper;
   final HistoryDatabase _database = HistoryDatabase.instance;
 
+  final GlobalKey _qrKey = GlobalKey(); // Key for QR widget capture
+
   @override
   void initState() {
     super.initState();
@@ -30,8 +37,7 @@ class _GenerateScreenState extends State<GenerateScreen> {
     setState(() {
       data = _controller.text;
     });
-    
-    // Save to history
+
     if (_controller.text.isNotEmpty) {
       final history = ScanHistory(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -39,7 +45,7 @@ class _GenerateScreenState extends State<GenerateScreen> {
         timestamp: DateTime.now(),
         isGenerated: true,
       );
-      
+
       _database.insertHistory(history);
     }
   }
@@ -54,17 +60,39 @@ class _GenerateScreenState extends State<GenerateScreen> {
     _adHelper.showAd(onAdClosed: _generateQRCode);
   }
 
-  void _shareGeneratedQR(String data) {
-    final String shareText = '''
+  Future<void> _shareGeneratedQR(String data) async {
+    try {
+      // Capture QR widget as image
+      RenderRepaintBoundary boundary =
+          _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      var image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+      // Save the file temporarily
+      final tempDir = await getTemporaryDirectory();
+      final file = await File('${tempDir.path}/qr_${DateTime.now().millisecondsSinceEpoch}.png')
+          .create();
+      await file.writeAsBytes(pngBytes);
+
+      // Share the QR image + content
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '''
 QR & Barcode App - Generated QR Code
 
 Content: $data
 Date: ${DateTime.now().toString()}
 
-Generated via QR & Barcode App
-''';
-
-    Share.share(shareText, subject: 'Generated QR Code Content');
+Generated via ScanGen
+''',
+        subject: 'Generated QR Code',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to share QR: $e')),
+      );
+    }
   }
 
   @override
@@ -107,10 +135,13 @@ Generated via QR & Barcode App
                     elevation: 4,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: QrImageView(
-                        data: data,
-                        size: 200,
-                        backgroundColor: Colors.white,
+                      child: RepaintBoundary(
+                        key: _qrKey,
+                        child: QrImageView(
+                          data: data,
+                          size: 200,
+                          backgroundColor: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -118,7 +149,7 @@ Generated via QR & Barcode App
                   ElevatedButton.icon(
                     onPressed: () => _shareGeneratedQR(data),
                     icon: const Icon(Icons.share),
-                    label: const Text('Share Content'),
+                    label: const Text('Share QR Image'),
                   ),
                 ],
               ),
