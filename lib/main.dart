@@ -3,6 +3,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/generate_screen.dart';
+import 'screens/history_screen.dart';
 import 'utils/admob_service.dart';
 
 void main() async {
@@ -42,12 +43,14 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
     HomeScreen(),
     ScanScreen(),
     GenerateScreen(),
+    HistoryScreen(),
   ];
 
   final List<String> _titles = const [
     "Home",
     "Scan QR / Barcode",
     "Generate QR Code",
+    "History",
   ];
 
   void _onItemTap(int index) {
@@ -95,6 +98,12 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
               title: const Text('Generate QR Code'),
               onTap: () => _onItemTap(2),
               selected: _selectedIndex == 2,
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('History'),
+              onTap: () => _onItemTap(3),
+              selected: _selectedIndex == 3,
             ),
             const Divider(),
             ListTile(
