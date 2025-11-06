@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/interstitial_ad_helper.dart';
 
 class GenerateScreen extends StatefulWidget {
   const GenerateScreen({super.key});
@@ -12,6 +13,31 @@ class GenerateScreen extends StatefulWidget {
 class _GenerateScreenState extends State<GenerateScreen> {
   final TextEditingController _controller = TextEditingController();
   String data = "";
+  late InterstitialAdHelper _adHelper;
+
+  @override
+  void initState() {
+    super.initState();
+    _adHelper = InterstitialAdHelper();
+    _adHelper.loadAd(); // Load the ad once the screen opens
+  }
+
+  void _generateQRCode() {
+    setState(() {
+      data = _controller.text;
+    });
+  }
+
+  void _handleGenerate() {
+    _adHelper.showAd(onAdClosed: _generateQRCode);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _adHelper.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +56,7 @@ class _GenerateScreenState extends State<GenerateScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  data = _controller.text;
-                });
-              },
+              onPressed: _handleGenerate,
               child: const Text("Generate"),
             ),
             const SizedBox(height: 24),
