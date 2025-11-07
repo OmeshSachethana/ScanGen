@@ -23,8 +23,7 @@ class _GenerateScreenState extends State<GenerateScreen> {
   String data = "";
   late InterstitialAdHelper _adHelper;
   final HistoryDatabase _database = HistoryDatabase.instance;
-
-  final GlobalKey _qrKey = GlobalKey(); // Key for QR widget capture
+  final GlobalKey _qrKey = GlobalKey();
 
   @override
   void initState() {
@@ -35,13 +34,13 @@ class _GenerateScreenState extends State<GenerateScreen> {
 
   void _generateQRCode() {
     setState(() {
-      data = _controller.text;
+      data = _controller.text.trim();
     });
 
-    if (_controller.text.isNotEmpty) {
+    if (data.isNotEmpty) {
       final history = ScanHistory(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        content: _controller.text,
+        content: data,
         timestamp: DateTime.now(),
         isGenerated: true,
       );
@@ -53,7 +52,7 @@ class _GenerateScreenState extends State<GenerateScreen> {
   void _handleGenerate() {
     if (_controller.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter some text to generate QR code')),
+        const SnackBar(content: Text('Please enter text to generate QR code')),
       );
       return;
     }
@@ -62,20 +61,17 @@ class _GenerateScreenState extends State<GenerateScreen> {
 
   Future<void> _shareGeneratedQR(String data) async {
     try {
-      // Capture QR widget as image
       RenderRepaintBoundary boundary =
           _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       var image = await boundary.toImage(pixelRatio: 3.0);
       ByteData? byteData = await image.toByteData(format: ImageByteFormat.png);
       Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-      // Save the file temporarily
       final tempDir = await getTemporaryDirectory();
       final file = await File('${tempDir.path}/qr_${DateTime.now().millisecondsSinceEpoch}.png')
           .create();
       await file.writeAsBytes(pngBytes);
 
-      // Share the QR image + content
       await Share.shareXFiles(
         [XFile(file.path)],
         text: '''
@@ -105,55 +101,123 @@ Generated via ScanGen
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Generate QR Code")),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          "Generate QR Code",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 1,
+        foregroundColor: Colors.black,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           children: [
+            // Input Field
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(
-                labelText: "Enter text to generate QR",
-                border: OutlineInputBorder(),
-                hintText: "Enter URL, text, or any content",
+              decoration: InputDecoration(
+                labelText: "Enter text or URL",
+                hintText: "Type something to generate a QR code",
+                labelStyle: const TextStyle(color: Colors.black54),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blueAccent),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
               maxLines: 3,
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _handleGenerate,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
+
+            const SizedBox(height: 20),
+
+            // Generate Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _handleGenerate,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                child: const Text(
+                  "Generate QR Code",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
-              child: const Text("Generate QR Code"),
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 30),
+
+            // QR Code Display
             if (data.isNotEmpty)
               Column(
                 children: [
                   Card(
-                    elevation: 4,
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: Colors.white,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: RepaintBoundary(
                         key: _qrKey,
                         child: QrImageView(
                           data: data,
-                          size: 200,
+                          size: 220,
                           backgroundColor: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+                  Text(
+                    data,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () => _shareGeneratedQR(data),
-                    icon: const Icon(Icons.share),
-                    label: const Text('Share QR Image'),
+                    icon: const Icon(Icons.share, color: Colors.white),
+                    label: const Text(
+                      'Share QR',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),
+
             const Spacer(),
+
+            // Ad Banner
             const BannerAdWidget(),
           ],
         ),
