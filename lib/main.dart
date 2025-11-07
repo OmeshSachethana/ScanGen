@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:scan_gen/screens/privacy_policy.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/generate_screen.dart';
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'QR & Barcode App',
+      title: 'ScanGen',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
@@ -54,7 +55,7 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
   ];
 
   void _onItemTap(int index) {
-    Navigator.pop(context); // close the drawer
+    Navigator.pop(context);
     setState(() {
       _selectedIndex = index;
     });
@@ -107,15 +108,26 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
             ),
             const Divider(),
             ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Privacy Policy'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.info_outline),
               title: const Text('About'),
               onTap: () {
                 showAboutDialog(
                   context: context,
-                  applicationName: "QR & Barcode App",
+                  applicationName: "ScanGen",
                   applicationVersion: "1.0.0",
                   children: [
-                    const Text("Developed by CodeByte Labs\nAll rights reserved © 2025")
+                    const Text("Developed by CodeByte Labs\nAll rights reserved © 2025"),
                   ],
                 );
               },
