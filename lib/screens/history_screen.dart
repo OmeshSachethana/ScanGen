@@ -15,7 +15,7 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   List<ScanHistory> _historyList = [];
   final HistoryDatabase _database = HistoryDatabase.instance;
-  final Set<String> _selectedItems = Set<String>();
+  final Set<String> _selectedItems = {};
 
   @override
   void initState() {
@@ -28,6 +28,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() {
       _historyList = history;
     });
+  }
+
+  // 🔹 Group history by date
+  Map<String, List<ScanHistory>> _groupByDate(List<ScanHistory> history) {
+    final Map<String, List<ScanHistory>> grouped = {};
+    final now = DateTime.now();
+
+    for (final item in history) {
+      final date = DateTime(item.timestamp.year, item.timestamp.month, item.timestamp.day);
+      String label;
+
+      if (date == DateTime(now.year, now.month, now.day)) {
+        label = 'Today';
+      } else if (date ==
+          DateTime(now.year, now.month, now.day - 1)) {
+        label = 'Yesterday';
+      } else {
+        label = DateFormat('MMMM dd, yyyy').format(date);
+      }
+
+      grouped.putIfAbsent(label, () => []).add(item);
+    }
+
+    return grouped;
   }
 
   void _deleteItem(String id) async {
@@ -76,16 +100,14 @@ Date: ${DateFormat('MMM dd, yyyy - HH:mm').format(history.timestamp)}
 
 Shared via QR & Barcode App
 ''';
-
     Share.share(shareText, subject: 'QR/Barcode Content');
   }
 
   void _shareMultipleItems() {
     if (_selectedItems.isEmpty) return;
 
-    final selectedHistory = _historyList
-        .where((item) => _selectedItems.contains(item.id))
-        .toList();
+    final selectedHistory =
+        _historyList.where((item) => _selectedItems.contains(item.id)).toList();
 
     final StringBuffer shareText = StringBuffer();
     shareText.writeln('QR & Barcode App - History Export');
@@ -95,15 +117,16 @@ Shared via QR & Barcode App
     for (final history in selectedHistory) {
       shareText.writeln('▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬');
       shareText.writeln('Content: ${history.content}');
-      shareText.writeln('Type: ${history.isGenerated ? 'Generated QR Code' : 'Scanned Code'}');
-      shareText.writeln('Date: ${DateFormat('MMM dd, yyyy - HH:mm').format(history.timestamp)}');
+      shareText.writeln(
+          'Type: ${history.isGenerated ? 'Generated QR Code' : 'Scanned Code'}');
+      shareText.writeln(
+          'Date: ${DateFormat('MMM dd, yyyy - HH:mm').format(history.timestamp)}');
       shareText.writeln('');
     }
 
     shareText.writeln('Exported via QR & Barcode App');
 
     Share.share(shareText.toString(), subject: 'QR/Barcode History Export');
-    
     _clearSelection();
   }
 
@@ -113,14 +136,17 @@ Shared via QR & Barcode App
     final StringBuffer shareText = StringBuffer();
     shareText.writeln('QR & Barcode App - Complete History');
     shareText.writeln('Total items: ${_historyList.length}');
-    shareText.writeln('Export date: ${DateFormat('MMM dd, yyyy - HH:mm').format(DateTime.now())}');
+    shareText.writeln(
+        'Export date: ${DateFormat('MMM dd, yyyy - HH:mm').format(DateTime.now())}');
     shareText.writeln('');
 
     for (final history in _historyList) {
       shareText.writeln('▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬');
       shareText.writeln('Content: ${history.content}');
-      shareText.writeln('Type: ${history.isGenerated ? 'Generated QR Code' : 'Scanned Code'}');
-      shareText.writeln('Date: ${DateFormat('MMM dd, yyyy - HH:mm').format(history.timestamp)}');
+      shareText.writeln(
+          'Type: ${history.isGenerated ? 'Generated QR Code' : 'Scanned Code'}');
+      shareText.writeln(
+          'Date: ${DateFormat('MMM dd, yyyy - HH:mm').format(history.timestamp)}');
       shareText.writeln('');
     }
 
@@ -171,13 +197,9 @@ Shared via QR & Barcode App
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              'Content:',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
-              ),
-            ),
+            Text('Content:',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.grey[600])),
             const SizedBox(height: 8),
             SelectableText(history.content),
             const SizedBox(height: 16),
@@ -202,9 +224,8 @@ Shared via QR & Barcode App
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey,
-                    ),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.grey),
                     child: const Text('Close'),
                   ),
                 ),
@@ -218,10 +239,12 @@ Shared via QR & Barcode App
 
   @override
   Widget build(BuildContext context) {
+    final groupedHistory = _groupByDate(_historyList);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isSelectionMode 
-            ? 'Selected (${_selectedItems.length})' 
+        title: Text(_isSelectionMode
+            ? 'Selected (${_selectedItems.length})'
             : 'History'),
         actions: [
           if (_historyList.isNotEmpty && !_isSelectionMode) ...[
@@ -231,9 +254,8 @@ Shared via QR & Barcode App
               tooltip: 'Export All',
             ),
             IconButton(
-              onPressed: () => setState(() {
-                _selectedItems.addAll(_historyList.map((e) => e.id));
-              }),
+              onPressed: () =>
+                  setState(() => _selectedItems.addAll(_historyList.map((e) => e.id))),
               icon: const Icon(Icons.select_all),
               tooltip: 'Select All',
             ),
@@ -270,9 +292,8 @@ Shared via QR & Barcode App
                   Text(
                     '${_selectedItems.length} items selected',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
-                    ),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700),
                   ),
                   const Spacer(),
                   TextButton(
@@ -290,83 +311,92 @@ Shared via QR & Barcode App
                       children: [
                         Icon(Icons.history, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
-                        Text(
-                          'No history yet',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
+                        Text('No history yet',
+                            style:
+                                TextStyle(fontSize: 18, color: Colors.grey)),
                         SizedBox(height: 8),
                         Text(
                           'Scan or generate QR codes to see them here',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey),
                           textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   )
-                : ListView.builder(
-                    itemCount: _historyList.length,
-                    itemBuilder: (context, index) {
-                      final history = _historyList[index];
-                      final isSelected = _selectedItems.contains(history.id);
-                      
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        color: isSelected ? Colors.blue.shade50 : null,
-                        child: ListTile(
-                          leading: _isSelectionMode
-                              ? Checkbox(
-                                  value: isSelected,
-                                  onChanged: (value) => _toggleSelection(history.id),
-                                )
-                              : Icon(
-                                  history.isGenerated
-                                      ? Icons.qr_code_2
-                                      : Icons.qr_code_scanner,
-                                  color: Colors.blue,
-                                ),
-                          title: Text(
-                            history.content.length > 50
-                                ? '${history.content.substring(0, 50)}...'
-                                : history.content,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            DateFormat('MMM dd, HH:mm').format(
-                              history.timestamp,
+                : ListView(
+                    children: groupedHistory.entries.map((entry) {
+                      final dateLabel = entry.key;
+                      final items = entry.value;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text(
+                              dateLabel,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
-                          trailing: _isSelectionMode
-                              ? null
-                              : Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.share, size: 20),
-                                      onPressed: () => _shareItem(history),
-                                      tooltip: 'Share',
-                                    ),
-                                    Icon(
-                                      history.isGenerated
-                                          ? Icons.upload
-                                          : Icons.download,
-                                      color: Colors.grey,
-                                    ),
-                                  ],
+                          ...items.map((history) {
+                            final isSelected =
+                                _selectedItems.contains(history.id);
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              color: isSelected ? Colors.blue.shade50 : null,
+                              child: ListTile(
+                                leading: _isSelectionMode
+                                    ? Checkbox(
+                                        value: isSelected,
+                                        onChanged: (_) =>
+                                            _toggleSelection(history.id),
+                                      )
+                                    : Icon(
+                                        history.isGenerated
+                                            ? Icons.qr_code_2
+                                            : Icons.qr_code_scanner,
+                                        color: Colors.blue,
+                                      ),
+                                title: Text(
+                                  history.content.length > 50
+                                      ? '${history.content.substring(0, 50)}...'
+                                      : history.content,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                          onTap: () {
-                            if (_isSelectionMode) {
-                              _toggleSelection(history.id);
-                            } else {
-                              _showHistoryDetails(history);
-                            }
-                          },
-                          onLongPress: () {
-                            _toggleSelection(history.id);
-                          },
-                        ),
+                                subtitle: Text(
+                                  DateFormat('HH:mm')
+                                      .format(history.timestamp),
+                                ),
+                                trailing: _isSelectionMode
+                                    ? null
+                                    : IconButton(
+                                        icon: const Icon(Icons.share, size: 20),
+                                        onPressed: () =>
+                                            _shareItem(history),
+                                        tooltip: 'Share',
+                                      ),
+                                onTap: () {
+                                  if (_isSelectionMode) {
+                                    _toggleSelection(history.id);
+                                  } else {
+                                    _showHistoryDetails(history);
+                                  }
+                                },
+                                onLongPress: () =>
+                                    _toggleSelection(history.id),
+                              ),
+                            );
+                          }).toList(),
+                        ],
                       );
-                    },
+                    }).toList(),
                   ),
           ),
           const BannerAdWidget(),
